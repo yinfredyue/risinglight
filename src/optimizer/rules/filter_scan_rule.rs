@@ -17,6 +17,8 @@ impl Rule for FilterScanRule {
             scan.column_ids().to_vec(),
             scan.column_descs().to_vec(),
             scan.with_row_handler(),
+            vec![],
+            vec![],
             scan.is_sorted(),
             Some(filter.expr().clone()),
         )))

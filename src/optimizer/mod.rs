@@ -30,10 +30,13 @@ pub struct Optimizer {
 
 impl Optimizer {
     pub fn optimize(&mut self, mut plan: PlanRef) -> PlanRef {
+        // Logical plan rewrite
         let mut constant_folding_rule = ConstantFoldingRule;
         let mut constant_moving_rule = ConstantMovingRule;
         let mut arith_expr_simplification_rule = ArithExprSimplificationRule;
         let mut bool_expr_simplification_rule = BoolExprSimplificationRule;
+
+        // Heuristic rules
         plan = constant_folding_rule.rewrite(plan);
         plan = arith_expr_simplification_rule.rewrite(plan);
         plan = bool_expr_simplification_rule.rewrite(plan);
@@ -45,11 +48,16 @@ impl Optimizer {
         ];
         if self.enable_filter_scan {
             rules.push(Box::new(FilterScanRule {}));
+            rules.push(Box::new(RangeScanRule {}))
         }
         let hep_optimizer = HeuristicOptimizer { rules };
         plan = hep_optimizer.optimize(plan);
+
+        // Column pruning
         let out_types_num = plan.out_types().len();
         plan = plan.prune_col(BitSet::from_iter(0..out_types_num));
+
+        // Convert logical plan to physical plan
         let mut phy_converter = PhysicalConverter;
         phy_converter.rewrite(plan)
     }

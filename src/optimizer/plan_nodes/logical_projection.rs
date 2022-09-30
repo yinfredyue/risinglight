@@ -236,6 +236,8 @@ mod tests {
             vec![1, 2, 3],
             col_descs.clone(),
             false,
+            vec![],
+            vec![],
             false,
             None,
         );

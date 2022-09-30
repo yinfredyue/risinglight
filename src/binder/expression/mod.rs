@@ -74,6 +74,67 @@ impl BoundExpr {
         filter_column
     }
 
+    /// Get primary-key predicates from an expression.
+    /// Requirements:
+    /// - the expression must be an AND tree of comparison operators.
+    /// - the comparison operator must be >, >=, <, <=, or =
+    /// If not, the function returns None.
+    pub fn get_pk_predicates(&self, column_descs: &[ColumnDesc]) -> Option<Vec<BoundBinaryOp>> {
+        struct Visitor<'a> {
+            column_descs: &'a [ColumnDesc],
+            pk_predicates: Vec<BoundBinaryOp>,
+            is_and_tree: bool, // and tree: a tree of AND's
+        }
+
+        impl<'a> ExprVisitor for Visitor<'a> {
+            fn visit_binary_op(&mut self, expr: &BoundBinaryOp) {
+                use BinaryOperator::*;
+                use BoundExpr::*;
+
+                if !self.is_and_tree {
+                    return;
+                }
+
+                match expr.op {
+                    And => {
+                        self.visit_expr(&expr.left_expr);
+                        self.visit_expr(&expr.right_expr)
+                    }
+                    Gt | Lt | GtEq | LtEq | Eq => {
+                        match (expr.left_expr.as_ref(), expr.right_expr.as_ref()) {
+                            (InputRef(BoundInputRef { index, .. }), Constant(_))
+                            | (Constant(_), InputRef(BoundInputRef { index, .. })) => {
+                                // 'inputRef op constant', or 'constant op inputRef'
+                                if self.column_descs.get(*index).unwrap().is_primary() {
+                                    self.pk_predicates.push(expr.clone());
+                                }
+                            }
+                            _ => {
+                                self.is_and_tree = false;
+                            }
+                        }
+                    }
+                    _ => {
+                        self.is_and_tree = false;
+                    }
+                }
+            }
+        }
+
+        let mut visitor = Visitor {
+            column_descs,
+            pk_predicates: vec![],
+            is_and_tree: true,
+        };
+        visitor.visit_expr(self);
+
+        if visitor.is_and_tree {
+            Some(visitor.pk_predicates)
+        } else {
+            None
+        }
+    }
+
     pub fn contains_column_ref(&self) -> bool {
         struct Visitor(bool);
         impl ExprVisitor for Visitor {

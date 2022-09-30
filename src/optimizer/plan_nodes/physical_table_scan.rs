@@ -46,6 +46,8 @@ impl fmt::Display for PhysicalTableScan {
 			  table #{},
 			  columns [{}],
 			  with_row_handler: {},
+			  begin_pk_keys: {:?},
+			  end_pk_keys: {:?},
 			  is_sorted: {},
 			  expr: {}"},
             self.logical().table_ref_id().table_id,
@@ -55,6 +57,8 @@ impl fmt::Display for PhysicalTableScan {
                 .map(ToString::to_string)
                 .join(", "),
             self.logical().with_row_handler(),
+            self.logical().begin_pk_keys(),
+            self.logical().end_pk_keys(),
             self.logical().is_sorted(),
             self.logical()
                 .expr()

@@ -237,6 +237,8 @@ mod tests {
             vec![1, 2, 3],
             col_descs,
             false,
+            vec![],
+            vec![],
             false,
             None,
         );

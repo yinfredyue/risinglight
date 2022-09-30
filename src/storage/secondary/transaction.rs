@@ -119,6 +119,8 @@ impl SecondaryTransaction {
     }
 
     async fn commit_inner(mut self) -> StorageResult<()> {
+        println!("Transaction commit_inner");
+
         self.flush_rowset().await?;
 
         // flush deletes to disk

@@ -60,8 +60,13 @@ impl DiskRowset {
                     guard.get(&path_of_index_column).expect("not found").clone()
                 }
             };
+            println!("Bytes len: {}", index_content.len());
 
             let column_index = ColumnIndex::from_bytes(&index_content)?;
+
+            for x in column_index.indexes() {
+                println!("index first key len: {}", x.first_key.len());
+            }
 
             let path_of_data_column = path_of_data_column(&directory, column_info);
 
@@ -175,6 +180,7 @@ impl DiskRowset {
                 let mut pre_block_first_key = 0;
                 for index in column_index.indexes() {
                     let mut first_key: &[u8] = &index.first_key;
+                    println!("first key len: {}", first_key.len());
                     let first_val: i32 = PrimitiveFixedWidthEncode::decode(&mut first_key);
 
                     if first_val > begin_val {

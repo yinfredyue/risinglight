@@ -10,7 +10,7 @@ use super::*;
 use crate::binder::ExprVisitor;
 use crate::catalog::{ColumnDesc, TableRefId};
 use crate::optimizer::logical_plan_rewriter::ExprRewriter;
-use crate::types::{ColumnId, DataTypeKind};
+use crate::types::{ColumnId, DataTypeKind, DataValue};
 /// The logical plan of sequential scan operation.
 #[derive(Debug, Clone, Serialize)]
 pub struct LogicalTableScan {
@@ -18,6 +18,8 @@ pub struct LogicalTableScan {
     column_ids: Vec<ColumnId>,
     column_descs: Vec<ColumnDesc>,
     with_row_handler: bool,
+    begin_pk_keys: Vec<DataValue>,
+    end_pk_keys: Vec<DataValue>,
     is_sorted: bool,
     expr: Option<BoundExpr>,
 }
@@ -28,6 +30,8 @@ impl LogicalTableScan {
         column_ids: Vec<ColumnId>,
         column_descs: Vec<ColumnDesc>,
         with_row_handler: bool,
+        begin_pk_keys: Vec<DataValue>,
+        end_pk_keys: Vec<DataValue>,
         is_sorted: bool,
         expr: Option<BoundExpr>,
     ) -> Self {
@@ -36,6 +40,8 @@ impl LogicalTableScan {
             column_ids,
             column_descs,
             with_row_handler,
+            begin_pk_keys,
+            end_pk_keys,
             is_sorted,
             expr,
         }
@@ -70,6 +76,15 @@ impl LogicalTableScan {
     pub fn expr(&self) -> Option<&BoundExpr> {
         self.expr.as_ref()
     }
+
+    pub fn begin_pk_keys(&self) -> &[DataValue] {
+        &self.begin_pk_keys[..]
+    }
+
+    pub fn end_pk_keys(&self) -> &[DataValue] {
+        &&self.end_pk_keys[..]
+    }
+
 }
 impl PlanTreeNodeLeaf for LogicalTableScan {}
 impl_plan_tree_node_for_leaf!(LogicalTableScan);
@@ -149,6 +164,8 @@ impl PlanNode for LogicalTableScan {
             column_ids,
             column_descs: column_descs.clone(),
             with_row_handler: self.with_row_handler,
+            begin_pk_keys: self.begin_pk_keys.clone(),
+            end_pk_keys: self.end_pk_keys.clone(),
             is_sorted: self.is_sorted,
             expr,
         }
@@ -174,10 +191,12 @@ impl fmt::Display for LogicalTableScan {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(
                 f,
-                "LogicalTableScan: table #{}, columns [{}], with_row_handler: {}, is_sorted: {}, expr: {}",
+                "LogicalTableScan: table #{}, columns [{}], with_row_handler: {}, start_pk_keys: {:?}, end_pk_keys: {:?}, is_sorted: {}, expr: {}",
                 self.table_ref_id.table_id,
                 self.column_ids.iter().map(ToString::to_string).join(", "),
                 self.with_row_handler,
+                self.begin_pk_keys,
+                self.end_pk_keys,
                 self.is_sorted,
                 self.expr.clone().map_or_else(|| "None".to_string(), |expr| format!("{:?}", expr))
             )

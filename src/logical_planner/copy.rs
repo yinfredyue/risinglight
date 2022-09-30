@@ -28,6 +28,8 @@ impl LogicalPlaner {
                     column_ids,
                     column_descs,
                     false,
+                    vec![],
+                    vec![],
                     false,
                     None,
                 )),

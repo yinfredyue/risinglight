@@ -220,6 +220,8 @@ impl LogicalPlaner {
                         column_ids.to_vec(),
                         column_descs.to_vec(),
                         with_row_handler,
+                        vec![],
+                        vec![],
                         is_sorted,
                         None,
                     )))
